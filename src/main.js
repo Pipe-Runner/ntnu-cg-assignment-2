@@ -1,6 +1,6 @@
 // firstImage();
-blueWhiteGradient();
-//redSphere();
+// blueWhiteGradient();
+redSphere();
 //normalsSphere();
 //sphereAndGround();
 //antialiasing();
@@ -47,17 +47,43 @@ function blueWhiteGradient() {
 
   const image = [];
 
-  function rayToColor(ray) {
-    const unitDirection = ray.direction.unitVector();
-
-    // Scaling t between 0 and 1
-    const t = 0.5 * (unitDirection.y + 1.0);
-
-    // Linear interpolation (lerp) between white and blue
-    return new Vec3(1.0, 1.0, 1.0)
-      .multiply(1.0 - t)
-      .add(new Vec3(0.5, 0.7, 1.0).multiply(t));
+  for (let j = imageHeight - 1; j >= 0; --j) {
+    for (let i = 0; i < imageWidth; ++i) {
+      const u = i / (imageWidth - 1);
+      const v = j / (imageHeight - 1);
+      const r = new Ray(
+        origin,
+        lowerLeftCorner
+          .add(horizontal.multiply(u))
+          .add(vertical.multiply(v))
+          .subtract(origin)
+      );
+      image.push(rayToColorV1(r).toList());
+    }
   }
+
+  displayImage(imageWidth, imageHeight, image);
+}
+
+function redSphere() {
+  // Screen space
+  const aspectRatio = 16.0 / 9.0;
+  const imageWidth = 400;
+  const imageHeight = Number.parseInt(imageWidth / aspectRatio, 10);
+
+  // View port
+  const origin = new Vec3(0, 0, 0);
+  const viewportHeight = 2;
+  const focalLength = 1.0;
+  const viewportWidth = aspectRatio * viewportHeight;
+  const horizontal = new Vec3(viewportWidth, 0, 0);
+  const vertical = new Vec3(0, viewportHeight, 0);
+  const lowerLeftCorner = origin
+    .subtract(horizontal.multiply(0.5))
+    .subtract(vertical.multiply(0.5))
+    .subtract(new Vec3(0, 0, focalLength));
+
+  const image = [];
 
   for (let j = imageHeight - 1; j >= 0; --j) {
     for (let i = 0; i < imageWidth; ++i) {
@@ -70,15 +96,11 @@ function blueWhiteGradient() {
           .add(vertical.multiply(v))
           .subtract(origin)
       );
-      image.push(rayToColor(r).toList());
+      image.push(rayToColorV2(r).toList());
     }
   }
 
   displayImage(imageWidth, imageHeight, image);
-}
-
-function redSphere() {
-  //TODO
 }
 
 function normalsSphere() {
@@ -99,4 +121,47 @@ function diffuseSphere() {
 
 function metalSpheres() {
   //TODO
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                    UTILS                                   */
+/* -------------------------------------------------------------------------- */
+function rayToColorV1(ray) {
+  const unitDirection = ray.direction.unitVector();
+
+  // Scaling t between 0 and 1
+  const t = 0.5 * (unitDirection.y + 1.0);
+
+  // Linear interpolation (lerp) between white and blue
+  return new Vec3(1.0, 1.0, 1.0)
+    .multiply(1.0 - t)
+    .add(new Vec3(0.5, 0.7, 1.0).multiply(t));
+}
+
+function rayToColorV2(ray) {
+  if (hitSphere(new Vec3(0, 0, -1), 0.5, ray)) {
+    return new Vec3(1, 0, 0);
+  }
+
+  const unitDirection = ray.direction.unitVector();
+
+  // Scaling t between 0 and 1
+  const t = 0.5 * (unitDirection.y + 1.0);
+
+  // Linear interpolation (lerp) between white and blue
+  return new Vec3(1.0, 1.0, 1.0)
+    .multiply(1.0 - t)
+    .add(new Vec3(0.5, 0.7, 1.0).multiply(t));
+}
+
+function hitSphere(center, radius, ray) {
+  const oc = ray.origin.subtract(center);
+
+  const a = ray.direction.dot(ray.direction);
+  const b = 2 * oc.dot(ray.direction);
+  const c = oc.dot(oc) - radius * radius;
+
+  const D = b * b - 4 * a * c;
+
+  return D >= 0;
 }
