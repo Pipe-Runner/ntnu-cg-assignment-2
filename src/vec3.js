@@ -36,10 +36,19 @@ class Vec3 {
     return new Vec3(Math.sqrt(this.x), Math.sqrt(this.y), Math.sqrt(this.z));
   }
   static random(min, max) {
-    //TODO
+    const scale = min + (max - min);
+    const result = new Vec3(Math.random(), Math.random(), Math.random());
+    return result.multiply(scale);
   }
   static randomInUnitSphere() {
-    //TODO
+    // const result = new Vec3(Math.random(), Math.random(), Math.random()).unitVector();
+    // return result.multiply(Math.random());
+
+    while (true) {
+      const p = Vec3.random(-1, 1);
+      if (p.squaredLength() >= 1) continue;
+      return p;
+    }
   }
   nearZero() {
     //TODO

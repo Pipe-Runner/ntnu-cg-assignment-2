@@ -3,8 +3,8 @@
 // redSphere();
 // normalsSphere();
 // sphereAndGround();
-antialiasing();
-//diffuseSphere();
+// antialiasing();
+diffuseSphere();
 //metalSpheres();
 
 function firstImage() {
@@ -224,7 +224,42 @@ function antialiasing() {
 }
 
 function diffuseSphere() {
-  //TODO
+  // camera
+  const camera = new Camera();
+  const samplesPerPixel = 100;
+
+  // world
+  const world = new World();
+  world.add(new Sphere(new Vec3(0, 0, -1), 0.5));
+  world.add(new Sphere(new Vec3(0, -100.5, -1), 100));
+
+  // Screen space
+  const aspectRatio = 16.0 / 9.0;
+  const imageWidth = 400;
+  const imageHeight = Number.parseInt(imageWidth / aspectRatio, 10);
+
+  // image pixel matrix
+  const image = [];
+
+  for (let j = imageHeight - 1; j >= 0; --j) {
+    for (let i = 0; i < imageWidth; ++i) {
+      let color = new Vec3(0, 0, 0);
+
+      // Here we take an average of the color of the pixel and its neighbors
+      for (let sampleIdx = 0; sampleIdx < samplesPerPixel; sampleIdx++) {
+        const u = (i + Math.random()) / (imageWidth - 1);
+        const v = (j + Math.random()) / (imageHeight - 1);
+        r = camera.getRay(u, v);
+        color = color.add(rayToColorV5(r, world));
+      }
+
+      color = color.multiply(1 / samplesPerPixel);
+
+      image.push(color.toList());
+    }
+  }
+
+  displayImage(imageWidth, imageHeight, image);
 }
 
 function metalSpheres() {
@@ -293,6 +328,32 @@ function rayToColorV4(ray, world) {
     const g = (N.y + 1) * 0.5;
     const b = (N.z + 1) * 0.5;
     return new Vec3(r, g, b);
+  }
+
+  const unitDirection = ray.direction.unitVector();
+
+  // Scaling t between 0 and 1
+  const t = 0.5 * (unitDirection.y + 1.0);
+
+  // Linear interpolation (lerp) between white and blue
+  return new Vec3(1.0, 1.0, 1.0)
+    .multiply(1.0 - t)
+    .add(new Vec3(0.5, 0.7, 1.0).multiply(t));
+}
+
+function rayToColorV5(ray, world, depth = 0) {
+  if (depth >= 50) return new Vec3(0, 0, 0);
+
+  const hitRecord = world.hit(ray, 0, Infinity);
+
+  if (hitRecord.hit) {
+    const N = hitRecord.normal;
+    const target = hitRecord.point.add(N).add(Vec3.randomInUnitSphere());
+    return rayToColorV5(
+      new Ray(hitRecord.point, target.subtract(hitRecord.point)),
+      world,
+      depth + 1
+    ).multiply(0.5);
   }
 
   const unitDirection = ray.direction.unitVector();
