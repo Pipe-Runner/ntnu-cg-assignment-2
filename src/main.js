@@ -254,6 +254,7 @@ function diffuseSphere() {
       }
 
       color = color.multiply(1 / samplesPerPixel);
+      color = color.squareRoot();
 
       image.push(color.toList());
     }
@@ -344,11 +345,12 @@ function rayToColorV4(ray, world) {
 function rayToColorV5(ray, world, depth = 0) {
   if (depth >= 50) return new Vec3(0, 0, 0);
 
-  const hitRecord = world.hit(ray, 0, Infinity);
+  // Increase the tMin to avoid shadow acne
+  const hitRecord = world.hit(ray, 0.001, Infinity);
 
   if (hitRecord.hit) {
     const N = hitRecord.normal;
-    const target = hitRecord.point.add(N).add(Vec3.randomInUnitSphere());
+    const target = hitRecord.point.add(N).add(Vec3.randomInUnitSphere().unitVector());
     return rayToColorV5(
       new Ray(hitRecord.point, target.subtract(hitRecord.point)),
       world,
