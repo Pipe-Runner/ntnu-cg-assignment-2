@@ -2,14 +2,10 @@
 // blueWhiteGradient();
 // redSphere();
 // normalsSphere();
-sphereAndGround();
-//antialiasing();
+// sphereAndGround();
+antialiasing();
 //diffuseSphere();
 //metalSpheres();
-
-// const sphere = new Sphere(new Vec3(0, 0, -1), 0.5);
-// const ray = new Ray(new Vec3(0, 0, 0), new Vec3(0, 0, -0.5));
-// console.log(sphere.hit(ray, 0, Infinity));
 
 function firstImage() {
   const imageWidth = 256;
@@ -189,7 +185,42 @@ function sphereAndGround() {
 }
 
 function antialiasing() {
-  //TODO
+  // camera
+  const camera = new Camera();
+  const samplesPerPixel = 100;
+
+  // world
+  const world = new World();
+  world.add(new Sphere(new Vec3(0, 0, -1), 0.5));
+  world.add(new Sphere(new Vec3(0, -100.5, -1), 100));
+
+  // Screen space
+  const aspectRatio = 16.0 / 9.0;
+  const imageWidth = 400;
+  const imageHeight = Number.parseInt(imageWidth / aspectRatio, 10);
+
+  // image pixel matrix
+  const image = [];
+
+  for (let j = imageHeight - 1; j >= 0; --j) {
+    for (let i = 0; i < imageWidth; ++i) {
+      let color = new Vec3(0, 0, 0);
+
+      // Here we take an average of the color of the pixel and its neighbors
+      for (let sampleIdx = 0; sampleIdx < samplesPerPixel; sampleIdx++) {
+        const u = (i + Math.random()) / (imageWidth - 1);
+        const v = (j + Math.random()) / (imageHeight - 1);
+        r = camera.getRay(u, v);
+        color = color.add(rayToColorV4(r, world));
+      }
+
+      color = color.multiply(1 / samplesPerPixel);
+
+      image.push(color.toList());
+    }
+  }
+
+  displayImage(imageWidth, imageHeight, image);
 }
 
 function diffuseSphere() {
