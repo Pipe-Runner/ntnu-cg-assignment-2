@@ -35,7 +35,7 @@ class Sphere {
          * *INFO: This step is unnecessary for the sphere where the normal calculation automatically points outwards of the surface
          */
         hitRecord.setFaceNormal(ray, N);
-        //   hitRecord.material = {};
+        hitRecord.material = this.material;
       }
     }
 

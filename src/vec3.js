@@ -51,9 +51,13 @@ class Vec3 {
     }
   }
   nearZero() {
-    //TODO
+    const e = 1e-8;
+    if (Math.abs(this.x < e) && Math.abs(this.y < e) && Math.abs(this.z < e)) {
+      return true;
+    }
+    return false;
   }
   reflect(n) {
-    //TODO
+    return this.subtract(n.multiply(2 * n.dot(this)));
   }
 }

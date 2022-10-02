@@ -4,8 +4,8 @@
 // normalsSphere();
 // sphereAndGround();
 // antialiasing();
-diffuseSphere();
-//metalSpheres();
+// diffuseSphere();
+metalSpheres();
 
 function firstImage() {
   const imageWidth = 256;
@@ -264,7 +264,57 @@ function diffuseSphere() {
 }
 
 function metalSpheres() {
-  //TODO
+  // camera
+  const camera = new Camera();
+  const samplesPerPixel = 100;
+
+  // world
+  const world = new World();
+  world.add(
+    new Sphere(
+      new Vec3(0, -100.5, -1),
+      100,
+      new Lambertian(new Vec3(0.8, 0.8, 0))
+    )
+  );
+  world.add(
+    new Sphere(new Vec3(0, 0, -1), 0.5, new Lambertian(new Vec3(0.7, 0.3, 0.3)))
+  );
+  world.add(
+    new Sphere(new Vec3(-1, 0, -1), 0.5, new Metal(new Vec3(0.8, 0.8, 0.8), 0.3))
+  );
+  world.add(
+    new Sphere(new Vec3(1, 0, -1), 0.5, new Metal(new Vec3(0.8, 0.6, 0.2), 1.0))
+  );
+
+  // Screen space
+  const aspectRatio = 16.0 / 9.0;
+  const imageWidth = 400;
+  const imageHeight = Number.parseInt(imageWidth / aspectRatio, 10);
+
+  // image pixel matrix
+  const image = [];
+
+  for (let j = imageHeight - 1; j >= 0; --j) {
+    for (let i = 0; i < imageWidth; ++i) {
+      let color = new Vec3(0, 0, 0);
+
+      // Here we take an average of the color of the pixel and its neighbors
+      for (let sampleIdx = 0; sampleIdx < samplesPerPixel; sampleIdx++) {
+        const u = (i + Math.random()) / (imageWidth - 1);
+        const v = (j + Math.random()) / (imageHeight - 1);
+        r = camera.getRay(u, v);
+        color = color.add(rayToColorV6(r, world));
+      }
+
+      color = color.multiply(1 / samplesPerPixel);
+      color = color.squareRoot();
+
+      image.push(color.toList());
+    }
+  }
+
+  displayImage(imageWidth, imageHeight, image);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -350,12 +400,44 @@ function rayToColorV5(ray, world, depth = 0) {
 
   if (hitRecord.hit) {
     const N = hitRecord.normal;
-    const target = hitRecord.point.add(N).add(Vec3.randomInUnitSphere().unitVector());
+    // TODO: suboptimal computation
+    const target = hitRecord.point
+      .add(N)
+      .add(Vec3.randomInUnitSphere().unitVector());
     return rayToColorV5(
       new Ray(hitRecord.point, target.subtract(hitRecord.point)),
       world,
       depth + 1
     ).multiply(0.5);
+  }
+
+  const unitDirection = ray.direction.unitVector();
+
+  // Scaling t between 0 and 1
+  const t = 0.5 * (unitDirection.y + 1.0);
+
+  // Linear interpolation (lerp) between white and blue
+  return new Vec3(1.0, 1.0, 1.0)
+    .multiply(1.0 - t)
+    .add(new Vec3(0.5, 0.7, 1.0).multiply(t));
+}
+
+function rayToColorV6(ray, world, depth = 0) {
+  if (depth >= 50) return new Vec3(0, 0, 0);
+
+  // Increase the tMin to avoid shadow acne
+  const hitRecord = world.hit(ray, 0.001, Infinity);
+
+  if (hitRecord.hit) {
+    const scatterRecord = hitRecord.material.scatter(ray, hitRecord);
+
+    if (scatterRecord.isScattered) {
+      return rayToColorV6(scatterRecord.rayScattered, world, depth + 1).multiplyByVector(
+        scatterRecord.attenuation
+      );
+    }
+
+    return new Vec3(0, 0, 0);
   }
 
   const unitDirection = ray.direction.unitVector();
